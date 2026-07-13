@@ -60,32 +60,64 @@
     border: 1px solid var(--panel-border);
     border-radius: 14px;
     padding: 14px 20px;
-    max-width: 420px;
+    max-width: 460px;
+    max-height: 68vh;
+    overflow-y: auto;
     pointer-events: auto;
   }
 
+  .title-block p {
+    margin: 0 0 10px 0;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .value-prop-list {
+    margin: 0 0 4px 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .value-prop-list li {
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--ink-soft);
+  }
+
+  .value-prop-list strong {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--c6);
+    margin-right: 2px;
+  }
+
   .filters-toggle {
-    background: var(--panel);
-    backdrop-filter: blur(6px);
-    border: 1px solid var(--panel-border);
+    background: var(--c6);
+    border: 1px solid var(--c6);
     border-radius: 14px;
     padding: 14px 20px;
     pointer-events: auto;
     font-family: var(--font-display);
     font-weight: 700;
     font-size: 13px;
-    color: var(--ink);
+    color: #FFFFFF;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 8px;
     height: fit-content;
+    box-shadow: 0 6px 18px rgba(76,140,130,0.38);
   }
 
-  .filters-toggle:hover { background: #FFFFFF; }
+  .filters-toggle:hover { background: #3E736A; border-color: #3E736A; }
 
   .filters-toggle:focus-visible {
-    outline: 2px solid var(--c6);
+    outline: 2px solid var(--ink);
     outline-offset: 2px;
   }
 
@@ -164,6 +196,16 @@
   .filter-item input[type="range"] {
     width: 100%;
     accent-color: var(--c6);
+  }
+
+  .filters-subtitle {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    margin-bottom: 10px;
   }
 
   .distance-filter {
@@ -610,8 +652,13 @@
 
 <div class="topbar">
   <div class="title-block">
-    <h1>ICC — Indice de Confort Climatique</h1>
-    <p>Projection à +4°C, par commune. Basé sur 9 indicateurs Météo-France (TRACC 2023) : canicules, nuits tropicales, précipitations, feux de forêt.</p>
+    <h1>Où vivre dans une France à +4°C ?</h1>
+    <p>Le climat de votre commune change. Découvrez-le avant de choisir où poser vos valises.</p>
+    <ul class="value-prop-list">
+      <li><strong>Explorer</strong> — La carte climatique de la France à +4°C, commune par commune, basée sur les projections officielles Météo-France (TRACC 2023).</li>
+      <li><strong>Filtrer</strong> — Selon des critères réels : confort climatique, distance à une ville de référence, altitude, nombre de jours de canicule.</li>
+      <li><strong>Anticiper</strong> — Votre lieu de vie, en connaissance de cause plutôt que par intuition.</li>
+    </ul>
     <button class="info-toggle" id="infoToggle" type="button">En savoir plus</button>
   </div>
   <button class="filters-toggle" id="filtersToggle" type="button" aria-expanded="false" aria-controls="filtersPanel">
@@ -648,6 +695,7 @@
     </div>
   </div>
 
+  <div class="filters-subtitle">Critères de confort climatique</div>
   <div id="filtersBody"></div>
 </div>
 
@@ -906,14 +954,18 @@
 
         // Filtres multi-critères : chaque commune doit satisfaire TOUS les critères actifs pour rester affichée
         const filterConfigs = [
-          { id: 'altitude_moyenne', label: 'Altitude', mode: 'min', min: 0,   max: 2750, step: 50,  unit: 'm',  prefix: '≥' },
-          { id: 'NORTX30D_yr',      label: 'Jours ≥ 30°C',              mode: 'max', min: 0,   max: 110,  step: 5,   unit: 'j',  prefix: '≤' },
-          { id: 'NORTX35D_yr',      label: 'Jours ≥ 35°C',              mode: 'max', min: 0,   max: 45,   step: 5,   unit: 'j',  prefix: '≤' },
-          { id: 'NORTR_yr',         label: 'Nuits tropicales',          mode: 'max', min: 0,   max: 125,  step: 5,   unit: 'j',  prefix: '≤' },
-          { id: 'NORIFM40_yr',      label: 'Jours feu élevé (IFM>40)',  mode: 'max', min: 0,   max: 95,   step: 5,   unit: 'j',  prefix: '≤' },
-          { id: 'NORRR_yr',         label: 'Précipitations annuelles',  mode: 'min', min: 450, max: 2250, step: 50,  unit: 'mm', prefix: '≥' },
-          { id: 'NORTMm_yr',        label: 'Température moyenne',       mode: 'max', min: 0,   max: 20,   step: 0.5, unit: '°C', prefix: '≤' }
+          { id: 'altitude_moyenne', label: 'Altitude supérieure à',              mode: 'min', min: 0,   max: 2750, step: 50,  unit: 'm',  prefix: '' },
+          { id: 'NORTX30D_yr',      label: 'Nb de jours où la T°C > 30°C',       mode: 'max', min: 0,   max: 110,  step: 5,   unit: 'j',  prefix: '≤' },
+          { id: 'NORTX35D_yr',      label: 'Nb de jours où la T°C > 35°C',       mode: 'max', min: 0,   max: 45,   step: 5,   unit: 'j',  prefix: '≤' },
+          { id: 'NORTR_yr',         label: 'Nb de nuits tropicales (T > 20°C)',  mode: 'max', min: 0,   max: 125,  step: 5,   unit: 'j',  prefix: '≤' },
+          { id: 'NORIFM40_yr',      label: 'Nb de jours de feu élevé (IFM>40)',  mode: 'max', min: 0,   max: 95,   step: 5,   unit: 'j',  prefix: '≤' },
+          { id: 'NORRR_yr',         label: 'Précipitations annuelles',           mode: 'min', min: 450, max: 2250, step: 50,  unit: 'mm', prefix: '≥' },
+          { id: 'NORTMm_yr',        label: 'Température moyenne',                mode: 'max', min: 0,   max: 20,   step: 0.5, unit: '°C', prefix: '≤' }
         ];
+
+        function formatFilterValue(cfg, value) {
+          return cfg.prefix ? `${cfg.prefix} ${value} ${cfg.unit}` : `${value} ${cfg.unit}`;
+        }
 
         const filtersBody = document.getElementById('filtersBody');
         const filtersBadge = document.getElementById('filtersBadge');
@@ -975,7 +1027,7 @@
           row.innerHTML = `
             <div class="filter-item-label">
               <span>${cfg.label}</span>
-              <span class="filter-item-value">${cfg.prefix} ${cfg.default} ${cfg.unit}</span>
+              <span class="filter-item-value">${formatFilterValue(cfg, cfg.default)}</span>
             </div>
             <input type="range" min="${cfg.min}" max="${cfg.max}" step="${cfg.step}" value="${cfg.default}" aria-label="${cfg.label}">
           `;
@@ -986,7 +1038,7 @@
 
           slider.addEventListener('input', () => {
             cfg.current = Number(slider.value);
-            valueLabel.textContent = `${cfg.prefix} ${cfg.current} ${cfg.unit}`;
+            valueLabel.textContent = formatFilterValue(cfg, cfg.current);
             updateMapFilter();
             updateBadge();
           });
@@ -1098,7 +1150,7 @@
           filterConfigs.forEach(cfg => {
             cfg.current = cfg.default;
             cfg.sliderEl.value = cfg.default;
-            cfg.valueEl.textContent = `${cfg.prefix} ${cfg.default} ${cfg.unit}`;
+            cfg.valueEl.textContent = formatFilterValue(cfg, cfg.default);
           });
           referenceCommune = null;
           removeReferenceMarker();
