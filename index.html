@@ -252,6 +252,147 @@
   #distanceRadiusRow[hidden] { display: none; }
   #distanceRadiusRow { margin-top: 10px; margin-bottom: 0; }
 
+  .filters-panel-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .filters-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--ink-soft);
+    font-size: 14px;
+    padding: 2px 4px;
+    line-height: 1;
+  }
+
+  .filters-close:focus-visible {
+    outline: 2px solid var(--c6);
+    outline-offset: 1px;
+  }
+
+  .info-toggle {
+    display: inline-block;
+    margin-top: 10px;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--c6);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .info-toggle:focus-visible {
+    outline: 2px solid var(--c6);
+    outline-offset: 2px;
+  }
+
+  .overlay-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 20, 18, 0.35);
+    z-index: 6;
+  }
+
+  .overlay-backdrop[hidden] { display: none; }
+
+  .info-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(560px, calc(100vw - 32px));
+    max-height: 80vh;
+    overflow-y: auto;
+    background: #FDFDFC;
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    padding: 22px 26px 26px;
+    z-index: 9;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+  }
+
+  .info-modal[hidden] { display: none; }
+
+  .info-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  .info-modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    color: var(--ink-soft);
+    padding: 2px 4px;
+  }
+
+  .info-modal-close:focus-visible {
+    outline: 2px solid var(--c6);
+    outline-offset: 2px;
+  }
+
+  .info-modal-body h2 {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--c6);
+    margin: 18px 0 8px;
+  }
+
+  .info-modal-body h2:first-child { margin-top: 0; }
+
+  .info-modal-body p {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink);
+    margin: 0 0 4px;
+  }
+
+  .info-modal-body ul {
+    margin: 6px 0 0;
+    padding-left: 18px;
+  }
+
+  .info-modal-body li {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink);
+  }
+
+  .info-modal-body .weight-list {
+    padding-left: 0;
+  }
+
+  .info-modal-body .weight-list li {
+    display: flex;
+    justify-content: space-between;
+    list-style: none;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 2px 0;
+  }
+
+  .info-modal-body .weight-list li span:first-child {
+    font-family: var(--font-body);
+    color: var(--ink-soft);
+  }
+
   .title-block h1 {
     margin: 0 0 4px 0;
     font-family: var(--font-display);
@@ -310,6 +451,29 @@
   .legend-caption {
     margin-top: 10px;
     font-size: 12px;
+    line-height: 1.4;
+    color: var(--ink-soft);
+  }
+
+  .legend-sources {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--panel-border);
+  }
+
+  .legend-sources-label {
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    margin-bottom: 4px;
+  }
+
+  .legend-sources p {
+    margin: 0;
+    font-size: 11px;
     line-height: 1.4;
     color: var(--ink-soft);
   }
@@ -419,6 +583,7 @@
   <div class="title-block">
     <h1>ICC — Indice de Confort Climatique</h1>
     <p>Projection à +4°C, par commune. Basé sur 9 indicateurs Météo-France (TRACC 2023) : canicules, nuits tropicales, précipitations, feux de forêt.</p>
+    <button class="info-toggle" id="infoToggle" type="button">En savoir plus</button>
   </div>
   <button class="filters-toggle" id="filtersToggle" type="button" aria-expanded="false" aria-controls="filtersPanel">
     Filtres
@@ -429,7 +594,10 @@
 <div class="filters-panel" id="filtersPanel" hidden>
   <div class="filters-panel-header">
     <span>Filtrer les communes</span>
-    <button class="filters-reset-all" id="filtersResetAll" type="button">Tout réinitialiser</button>
+    <div class="filters-panel-header-actions">
+      <button class="filters-reset-all" id="filtersResetAll" type="button">Tout réinitialiser</button>
+      <button class="filters-close" id="filtersClose" type="button" aria-label="Fermer les filtres">✕</button>
+    </div>
   </div>
 
   <div class="distance-filter">
@@ -462,6 +630,45 @@
     <span>Élevé</span>
   </div>
   <div class="legend-caption">Survolez une commune pour voir son score détaillé.</div>
+  <div class="legend-sources">
+    <div class="legend-sources-label">Sources</div>
+    <p>Données climatiques : Météo-France, base DRIAS, scénario de réchauffement +4°C (TRACC 2023). Référentiel communes : data.gouv.fr. Diffusion sous Licence Ouverte.</p>
+  </div>
+</div>
+
+<div class="overlay-backdrop" id="overlayBackdrop" hidden></div>
+
+<div class="info-modal" id="infoModal" hidden role="dialog" aria-modal="true" aria-label="À propos de cette carte">
+  <div class="info-modal-header">
+    <span>À propos de cette carte</span>
+    <button class="info-modal-close" id="infoModalClose" type="button" aria-label="Fermer">✕</button>
+  </div>
+  <div class="info-modal-body">
+    <h2>Objectif</h2>
+    <p>Cette carte identifie les communes de France les plus confortables sur le plan climatique dans un scénario de réchauffement à +4°C — la trajectoire de référence utilisée par Météo-France pour anticiper les impacts du changement climatique en France. Elle croise plusieurs extrêmes climatiques (canicules, nuits tropicales, feux de forêt, précipitations, températures) pour repérer, commune par commune, les territoires les moins exposés.</p>
+
+    <h2>Comment est calculé l'ICC</h2>
+    <p>L'Indice de Confort Climatique combine 9 indicateurs issus des projections Météo-France (TRACC 2023), chacun pondéré selon son impact sur le confort de vie :</p>
+    <ul class="weight-list">
+      <li><span>Jours ≥ 35°C</span><span>25 %</span></li>
+      <li><span>Nuits tropicales</span><span>20 %</span></li>
+      <li><span>Jours ≥ 30°C</span><span>15 %</span></li>
+      <li><span>Précipitations annuelles</span><span>15 %</span></li>
+      <li><span>Température maximale en été</span><span>10 %</span></li>
+      <li><span>Température moyenne annuelle</span><span>5 %</span></li>
+      <li><span>Température moyenne en été</span><span>5 %</span></li>
+      <li><span>Température moyenne en hiver</span><span>3 %</span></li>
+      <li><span>Jours à risque de feu élevé</span><span>2 %</span></li>
+    </ul>
+    <p>Chaque indicateur est ramené sur une échelle de 0 à 100 avant d'être pondéré, pour obtenir un score final comparable d'une commune à l'autre. Plus le score est élevé, plus la commune est jugée confortable dans ce scénario.</p>
+
+    <h2>Fonctionnalités</h2>
+    <ul>
+      <li>Survolez une commune pour voir son score détaillé et ses indicateurs bruts (altitude, canicules, nuits tropicales, risque de feu)</li>
+      <li>Filtrez par altitude, précipitations, température ou fréquence des extrêmes climatiques</li>
+      <li>Recherchez une commune de référence pour n'afficher que celles situées à moins de X km autour</li>
+    </ul>
+  </div>
 </div>
 
 <div class="tooltip" id="tooltip"></div>
@@ -470,6 +677,59 @@
 <script>
   const tooltip = document.getElementById('tooltip');
   const loading = document.getElementById('loading');
+
+  // Ouverture/fermeture des panneaux (filtres + info), avec calque de fermeture commun —
+  // indépendant du chargement des données, donc actif dès l'affichage de la page
+  const filtersToggle = document.getElementById('filtersToggle');
+  const filtersPanel = document.getElementById('filtersPanel');
+  const filtersClose = document.getElementById('filtersClose');
+  const infoToggle = document.getElementById('infoToggle');
+  const infoModal = document.getElementById('infoModal');
+  const infoModalClose = document.getElementById('infoModalClose');
+  const overlayBackdrop = document.getElementById('overlayBackdrop');
+
+  function syncBackdrop() {
+    overlayBackdrop.hidden = filtersPanel.hidden && infoModal.hidden;
+  }
+
+  function openFilters() {
+    filtersPanel.hidden = false;
+    filtersToggle.setAttribute('aria-expanded', 'true');
+    syncBackdrop();
+  }
+
+  function closeFilters() {
+    filtersPanel.hidden = true;
+    filtersToggle.setAttribute('aria-expanded', 'false');
+    syncBackdrop();
+  }
+
+  function openInfo() {
+    infoModal.hidden = false;
+    syncBackdrop();
+  }
+
+  function closeInfo() {
+    infoModal.hidden = true;
+    syncBackdrop();
+  }
+
+  filtersToggle.addEventListener('click', () => {
+    filtersPanel.hidden ? openFilters() : closeFilters();
+  });
+  filtersClose.addEventListener('click', closeFilters);
+  infoToggle.addEventListener('click', openInfo);
+  infoModalClose.addEventListener('click', closeInfo);
+  overlayBackdrop.addEventListener('click', () => {
+    closeFilters();
+    closeInfo();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeFilters();
+      closeInfo();
+    }
+  });
 
   const map = new maplibregl.Map({
     container: 'map',
@@ -629,8 +889,6 @@
 
         const filtersBody = document.getElementById('filtersBody');
         const filtersBadge = document.getElementById('filtersBadge');
-        const filtersToggle = document.getElementById('filtersToggle');
-        const filtersPanel = document.getElementById('filtersPanel');
         const filtersResetAll = document.getElementById('filtersResetAll');
 
         // Recherche de commune de référence + rayon
@@ -774,12 +1032,6 @@
           distanceRadiusRow.hidden = true;
           updateMapFilter();
           updateBadge();
-        });
-
-        filtersToggle.addEventListener('click', () => {
-          const isOpen = !filtersPanel.hidden;
-          filtersPanel.hidden = isOpen;
-          filtersToggle.setAttribute('aria-expanded', String(!isOpen));
         });
 
         map.once('idle', () => {
