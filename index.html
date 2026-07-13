@@ -134,7 +134,7 @@
     padding: 10px 14px;
     font-size: 13px;
     z-index: 3;
-    max-width: 220px;
+    max-width: 250px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.22);
   }
 
@@ -163,6 +163,32 @@
     height: 100%;
     background: var(--c5);
     border-radius: 3px;
+  }
+
+  .tooltip-stats {
+    margin-top: 9px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(244,246,244,0.14);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 11px;
+  }
+
+  .stat-row span:first-child {
+    color: rgba(244,246,244,0.6);
+  }
+
+  .stat-row span:last-child {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    white-space: nowrap;
   }
 
   .loading {
@@ -201,7 +227,7 @@
 <div class="topbar">
   <div class="title-block">
     <h1>ICC — Indice de Confort Climatique</h1>
-    <p>Projection à l'horizon 2100 (+4°C), par commune. Basé sur 9 indicateurs Météo-France (TRACC 2023) : canicules, nuits tropicales, précipitations, feux de forêt.</p>
+    <p>Projection à +4°C, par commune. Basé sur 9 indicateurs Météo-France (TRACC 2023) : canicules, nuits tropicales, précipitations, feux de forêt.</p>
   </div>
 </div>
 
@@ -295,6 +321,11 @@
       const props = e.features[0].properties;
       const icc = Number(props.ICC).toFixed(1);
       const gaugePct = Math.max(0, Math.min(100, ((props.ICC - 10) / 85) * 100));
+      const altitude = Math.round(props.altitude_moyenne);
+      const j30 = Number(props.NORTX30D_yr).toFixed(1);
+      const j35 = Number(props.NORTX35D_yr).toFixed(1);
+      const nuits = Number(props.NORTR_yr).toFixed(1);
+      const feu = props.NORIFM40_yr;
 
       tooltip.style.display = 'block';
       tooltip.style.left = (e.point.x + 16) + 'px';
@@ -303,6 +334,13 @@
         <div class="tooltip-name">${props.nom_standard}</div>
         <div class="tooltip-score">ICC ${icc} / 100</div>
         <div class="tooltip-gauge"><div class="tooltip-gauge-fill" style="width:${gaugePct}%"></div></div>
+        <div class="tooltip-stats">
+          <div class="stat-row"><span>Altitude</span><span>${altitude} m</span></div>
+          <div class="stat-row"><span>Jours ≥ 30°C</span><span>${j30} j</span></div>
+          <div class="stat-row"><span>Jours ≥ 35°C</span><span>${j35} j</span></div>
+          <div class="stat-row"><span>Nuits tropicales</span><span>${nuits} j</span></div>
+          <div class="stat-row"><span>Jours feu élevé (IFM&gt;40)</span><span>${feu} j</span></div>
+        </div>
       `;
 
       map.getCanvas().style.cursor = 'pointer';
