@@ -478,6 +478,35 @@
     color: var(--ink-soft);
   }
 
+  .reference-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  .reference-marker-label {
+    background: var(--ink);
+    color: #F4F6F4;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    margin-bottom: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  }
+
+  .reference-marker-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--c2);
+    border: 3px solid #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+
   .tooltip {
     position: absolute;
     display: none;
@@ -632,7 +661,7 @@
   <div class="legend-caption">Survolez une commune pour voir son score détaillé.</div>
   <div class="legend-sources">
     <div class="legend-sources-label">Sources</div>
-    <p>Données climatiques : Météo-France, base DRIAS, scénario de réchauffement +4°C (TRACC 2023). Référentiel communes : data.gouv.fr. Diffusion sous Licence Ouverte.</p>
+    <p>Données climatiques : Météo-France, base DRIAS, scénario de réchauffement +4°C (TRACC 2023). Référentiel communes : data.gouv.fr. Fond de carte : OpenFreeMap / © contributeurs OpenStreetMap. Diffusion sous Licence Ouverte.</p>
   </div>
 </div>
 
@@ -733,13 +762,7 @@
 
   const map = new maplibregl.Map({
     container: 'map',
-    style: {
-      version: 8,
-      sources: {},
-      layers: [
-        { id: 'background', type: 'background', paint: { 'background-color': '#E8ECE9' } }
-      ]
-    },
+    style: 'https://tiles.openfreemap.org/styles/positron',
     center: [2.4, 46.6],
     zoom: 5,
     minZoom: 4.2,
@@ -748,6 +771,11 @@
   });
 
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+
+  map.on('error', (e) => {
+    console.error('Erreur MapLibre :', e && e.error);
+  });
 
   map.on('load', () => {
     fetch('data/carte_icc_france.geojson')
@@ -902,6 +930,7 @@
         const distanceRadiusValue = document.getElementById('distanceRadiusValue');
 
         let referenceCommune = null;
+        let referenceMarker = null;
 
         function updateMapFilter() {
           const clauses = filterConfigs.map(cfg => {
@@ -917,9 +946,17 @@
             clauses.push(['in', ['get', 'code_insee'], ['literal', withinRadius]]);
           }
 
-          const expr = ['all', ...clauses];
-          map.setFilter('communes-fill', expr);
-          map.setFilter('communes-outline', expr);
+          const matchExpr = ['all', ...clauses];
+
+          // On ne masque plus les communes filtrées via setFilter (elles disparaîtraient entièrement,
+          // contour compris) : on réduit seulement l'opacité de la couleur. Le contour, sur la couche
+          // "communes-outline", n'est jamais filtré et reste donc toujours visible.
+          map.setPaintProperty('communes-fill', 'fill-opacity', [
+            'case',
+            matchExpr,
+            ['case', ['boolean', ['feature-state', 'hover'], false], 1, 0.85],
+            0.06
+          ]);
         }
 
         function updateBadge() {
@@ -958,6 +995,31 @@
           cfg.valueEl = valueLabel;
         });
 
+        function kmToDegLat(km) { return km / 111; }
+        function kmToDegLon(km, lat) { return km / (111 * Math.cos(lat * Math.PI / 180)); }
+
+        function placeReferenceMarker(commune) {
+          if (referenceMarker) referenceMarker.remove();
+
+          const el = document.createElement('div');
+          el.className = 'reference-marker';
+          el.innerHTML = `
+            <div class="reference-marker-label">${commune.nom_standard}</div>
+            <div class="reference-marker-dot"></div>
+          `;
+
+          referenceMarker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+            .setLngLat([commune.lon, commune.lat])
+            .addTo(map);
+        }
+
+        function removeReferenceMarker() {
+          if (referenceMarker) {
+            referenceMarker.remove();
+            referenceMarker = null;
+          }
+        }
+
         function selectReferenceCommune(commune) {
           referenceCommune = commune;
           communeSearchInput.value = '';
@@ -966,6 +1028,17 @@
           distanceActive.hidden = false;
           distanceRadiusRow.hidden = false;
           distanceRadiusValue.textContent = `≤ ${distanceRadiusSlider.value} km`;
+
+          placeReferenceMarker(commune);
+
+          const radius = Number(distanceRadiusSlider.value);
+          const dLat = kmToDegLat(radius);
+          const dLon = kmToDegLon(radius, commune.lat);
+          map.fitBounds([
+            [commune.lon - dLon, commune.lat - dLat],
+            [commune.lon + dLon, commune.lat + dLat]
+          ], { padding: 60, duration: 800 });
+
           updateMapFilter();
           updateBadge();
         }
@@ -1013,6 +1086,7 @@
 
         distanceClear.addEventListener('click', () => {
           referenceCommune = null;
+          removeReferenceMarker();
           communeSearchInput.value = '';
           distanceActive.hidden = true;
           distanceRadiusRow.hidden = true;
@@ -1027,6 +1101,7 @@
             cfg.valueEl.textContent = `${cfg.prefix} ${cfg.default} ${cfg.unit}`;
           });
           referenceCommune = null;
+          removeReferenceMarker();
           communeSearchInput.value = '';
           distanceActive.hidden = true;
           distanceRadiusRow.hidden = true;
