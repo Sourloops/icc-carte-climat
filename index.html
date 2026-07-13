@@ -166,6 +166,92 @@
     accent-color: var(--c6);
   }
 
+  .distance-filter {
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  .distance-search-wrap { position: relative; }
+
+  #communeSearchInput {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--panel-border);
+    font-family: var(--font-body);
+    font-size: 13px;
+    background: #fff;
+    color: var(--ink);
+  }
+
+  #communeSearchInput:focus-visible {
+    outline: 2px solid var(--c6);
+    outline-offset: 1px;
+  }
+
+  .distance-suggestions {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    max-height: 180px;
+    overflow-y: auto;
+    z-index: 7;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.14);
+  }
+
+  .distance-suggestions[hidden] { display: none; }
+
+  .suggestion-item {
+    padding: 8px 10px;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+
+  .suggestion-item:hover { background: var(--bg); }
+
+  .suggestion-dept {
+    color: var(--ink-soft);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    margin-left: 6px;
+  }
+
+  .distance-active {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 12.5px;
+  }
+
+  .distance-active[hidden] { display: none; }
+
+  #distanceClear {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--ink-soft);
+    font-size: 13px;
+    padding: 0 2px;
+    line-height: 1;
+  }
+
+  #distanceClear:focus-visible {
+    outline: 2px solid var(--c6);
+    outline-offset: 1px;
+  }
+
+  #distanceRadiusRow[hidden] { display: none; }
+  #distanceRadiusRow { margin-top: 10px; margin-bottom: 0; }
+
   .title-block h1 {
     margin: 0 0 4px 0;
     font-family: var(--font-display);
@@ -345,6 +431,26 @@
     <span>Filtrer les communes</span>
     <button class="filters-reset-all" id="filtersResetAll" type="button">Tout réinitialiser</button>
   </div>
+
+  <div class="distance-filter">
+    <div class="filter-item-label"><span>Distance à une commune</span></div>
+    <div class="distance-search-wrap">
+      <input type="text" id="communeSearchInput" placeholder="Ex : Lyon" autocomplete="off">
+      <div class="distance-suggestions" id="distanceSuggestions" hidden></div>
+    </div>
+    <div class="distance-active" id="distanceActive" hidden>
+      <span id="distanceActiveLabel"></span>
+      <button type="button" id="distanceClear" aria-label="Retirer le filtre de distance">✕</button>
+    </div>
+    <div class="filter-item" id="distanceRadiusRow" hidden>
+      <div class="filter-item-label">
+        <span>Rayon</span>
+        <span class="filter-item-value" id="distanceRadiusValue">≤ 80 km</span>
+      </div>
+      <input type="range" id="distanceRadiusSlider" min="10" max="300" step="10" value="80" aria-label="Rayon en kilomètres">
+    </div>
+  </div>
+
   <div id="filtersBody"></div>
 </div>
 
@@ -384,180 +490,307 @@
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
 
   map.on('load', () => {
-    map.addSource('communes', {
-      type: 'geojson',
-      data: 'data/carte_icc_france.geojson',
-      generateId: true
-    });
+    fetch('data/carte_icc_france.geojson')
+      .then(r => r.json())
+      .then(geojsonData => {
 
-    map.addLayer({
-      id: 'communes-fill',
-      type: 'fill',
-      source: 'communes',
-      paint: {
-        'fill-color': [
-          'interpolate', ['linear'], ['coalesce', ['get', 'ICC'], 0],
-          10, '#7A2E1D',
-          30, '#B6502E',
-          45, '#DDA15E',
-          58, '#EDE6C8',
-          70, '#8FBFAE',
-          85, '#4C8C82',
-          95, '#1F4A44'
-        ],
-        'fill-opacity': [
-          'case',
-          ['boolean', ['feature-state', 'hover'], false],
-          1,
-          0.85
-        ]
-      }
-    });
+        // Centroïde approximatif de chaque commune (moyenne simple des sommets du contour extérieur) —
+        // suffisant à l'échelle d'un filtre par distance en dizaines/centaines de km, pas besoin de précision au mètre près
+        function computeCentroid(geometry) {
+          let coords = [];
+          if (geometry.type === 'Polygon') {
+            coords = geometry.coordinates[0];
+          } else if (geometry.type === 'MultiPolygon') {
+            geometry.coordinates.forEach(poly => { coords = coords.concat(poly[0]); });
+          }
+          let sumLon = 0, sumLat = 0;
+          coords.forEach(([lon, lat]) => { sumLon += lon; sumLat += lat; });
+          return { lon: sumLon / coords.length, lat: sumLat / coords.length };
+        }
 
-    map.addLayer({
-      id: 'communes-outline',
-      type: 'line',
-      source: 'communes',
-      paint: {
-        'line-color': 'rgba(20,30,28,0.22)',
-        'line-width': 0.4
-      }
-    });
+        function haversineKm(lat1, lon1, lat2, lon2) {
+          const R = 6371;
+          const dLat = (lat2 - lat1) * Math.PI / 180;
+          const dLon = (lon2 - lon1) * Math.PI / 180;
+          const a = Math.sin(dLat / 2) ** 2 +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                    Math.sin(dLon / 2) ** 2;
+          return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
 
-    let hoveredId = null;
+        const communesIndex = geojsonData.features.map(f => {
+          const c = computeCentroid(f.geometry);
+          return {
+            code_insee: f.properties.code_insee,
+            nom_standard: f.properties.nom_standard,
+            lon: c.lon,
+            lat: c.lat
+          };
+        });
 
-    map.on('mousemove', 'communes-fill', (e) => {
-      if (e.features.length === 0) return;
+        map.addSource('communes', {
+          type: 'geojson',
+          data: geojsonData,
+          generateId: true
+        });
 
-      if (hoveredId !== null) {
-        map.setFeatureState({ source: 'communes', id: hoveredId }, { hover: false });
-      }
-      hoveredId = e.features[0].id;
-      map.setFeatureState({ source: 'communes', id: hoveredId }, { hover: true });
+        map.addLayer({
+          id: 'communes-fill',
+          type: 'fill',
+          source: 'communes',
+          paint: {
+            'fill-color': [
+              'interpolate', ['linear'], ['coalesce', ['get', 'ICC'], 0],
+              10, '#7A2E1D',
+              30, '#B6502E',
+              45, '#DDA15E',
+              58, '#EDE6C8',
+              70, '#8FBFAE',
+              85, '#4C8C82',
+              95, '#1F4A44'
+            ],
+            'fill-opacity': [
+              'case',
+              ['boolean', ['feature-state', 'hover'], false],
+              1,
+              0.85
+            ]
+          }
+        });
 
-      const props = e.features[0].properties;
-      const icc = Number(props.ICC).toFixed(1);
-      const gaugePct = Math.max(0, Math.min(100, ((props.ICC - 10) / 85) * 100));
-      const altitude = Math.round(props.altitude_moyenne);
-      const j30 = Number(props.NORTX30D_yr).toFixed(1);
-      const j35 = Number(props.NORTX35D_yr).toFixed(1);
-      const nuits = Number(props.NORTR_yr).toFixed(1);
-      const feu = props.NORIFM40_yr;
+        map.addLayer({
+          id: 'communes-outline',
+          type: 'line',
+          source: 'communes',
+          paint: {
+            'line-color': 'rgba(20,30,28,0.22)',
+            'line-width': 0.4
+          }
+        });
 
-      tooltip.style.display = 'block';
-      tooltip.style.left = (e.point.x + 16) + 'px';
-      tooltip.style.top = (e.point.y + 16) + 'px';
-      tooltip.innerHTML = `
-        <div class="tooltip-name">${props.nom_standard}</div>
-        <div class="tooltip-score">ICC ${icc} / 100</div>
-        <div class="tooltip-gauge"><div class="tooltip-gauge-fill" style="width:${gaugePct}%"></div></div>
-        <div class="tooltip-stats">
-          <div class="stat-row"><span>Altitude</span><span>${altitude} m</span></div>
-          <div class="stat-row"><span>Jours ≥ 30°C</span><span>${j30} j</span></div>
-          <div class="stat-row"><span>Jours ≥ 35°C</span><span>${j35} j</span></div>
-          <div class="stat-row"><span>Nuits tropicales</span><span>${nuits} j</span></div>
-          <div class="stat-row"><span>Jours feu élevé (IFM&gt;40)</span><span>${feu} j</span></div>
-        </div>
-      `;
+        let hoveredId = null;
 
-      map.getCanvas().style.cursor = 'pointer';
-    });
+        map.on('mousemove', 'communes-fill', (e) => {
+          if (e.features.length === 0) return;
 
-    map.on('mouseleave', 'communes-fill', () => {
-      if (hoveredId !== null) {
-        map.setFeatureState({ source: 'communes', id: hoveredId }, { hover: false });
-      }
-      hoveredId = null;
-      tooltip.style.display = 'none';
-      map.getCanvas().style.cursor = '';
-    });
+          if (hoveredId !== null) {
+            map.setFeatureState({ source: 'communes', id: hoveredId }, { hover: false });
+          }
+          hoveredId = e.features[0].id;
+          map.setFeatureState({ source: 'communes', id: hoveredId }, { hover: true });
 
-    // Filtres multi-critères : chaque commune doit satisfaire TOUS les critères actifs pour rester affichée
-    const filterConfigs = [
-      { id: 'altitude_moyenne', label: 'Altitude', mode: 'min', min: 0,   max: 2750, step: 50,  unit: 'm',  prefix: '≥' },
-      { id: 'NORTX30D_yr',      label: 'Jours ≥ 30°C',              mode: 'max', min: 0,   max: 110,  step: 5,   unit: 'j',  prefix: '≤' },
-      { id: 'NORTX35D_yr',      label: 'Jours ≥ 35°C',              mode: 'max', min: 0,   max: 45,   step: 5,   unit: 'j',  prefix: '≤' },
-      { id: 'NORTR_yr',         label: 'Nuits tropicales',          mode: 'max', min: 0,   max: 125,  step: 5,   unit: 'j',  prefix: '≤' },
-      { id: 'NORIFM40_yr',      label: 'Jours feu élevé (IFM>40)',  mode: 'max', min: 0,   max: 95,   step: 5,   unit: 'j',  prefix: '≤' },
-      { id: 'NORRR_yr',         label: 'Précipitations annuelles',  mode: 'min', min: 450, max: 2250, step: 50,  unit: 'mm', prefix: '≥' },
-      { id: 'NORTMm_yr',        label: 'Température moyenne',       mode: 'max', min: 0,   max: 20,   step: 0.5, unit: '°C', prefix: '≤' }
-    ];
+          const props = e.features[0].properties;
+          const icc = Number(props.ICC).toFixed(1);
+          const gaugePct = Math.max(0, Math.min(100, ((props.ICC - 10) / 85) * 100));
+          const altitude = Math.round(props.altitude_moyenne);
+          const j30 = Number(props.NORTX30D_yr).toFixed(1);
+          const j35 = Number(props.NORTX35D_yr).toFixed(1);
+          const nuits = Number(props.NORTR_yr).toFixed(1);
+          const feu = props.NORIFM40_yr;
 
-    const filtersBody = document.getElementById('filtersBody');
-    const filtersBadge = document.getElementById('filtersBadge');
-    const filtersToggle = document.getElementById('filtersToggle');
-    const filtersPanel = document.getElementById('filtersPanel');
-    const filtersResetAll = document.getElementById('filtersResetAll');
+          tooltip.style.display = 'block';
+          tooltip.style.left = (e.point.x + 16) + 'px';
+          tooltip.style.top = (e.point.y + 16) + 'px';
+          tooltip.innerHTML = `
+            <div class="tooltip-name">${props.nom_standard}</div>
+            <div class="tooltip-score">ICC ${icc} / 100</div>
+            <div class="tooltip-gauge"><div class="tooltip-gauge-fill" style="width:${gaugePct}%"></div></div>
+            <div class="tooltip-stats">
+              <div class="stat-row"><span>Altitude</span><span>${altitude} m</span></div>
+              <div class="stat-row"><span>Jours ≥ 30°C</span><span>${j30} j</span></div>
+              <div class="stat-row"><span>Jours ≥ 35°C</span><span>${j35} j</span></div>
+              <div class="stat-row"><span>Nuits tropicales</span><span>${nuits} j</span></div>
+              <div class="stat-row"><span>Jours feu élevé (IFM&gt;40)</span><span>${feu} j</span></div>
+            </div>
+          `;
 
-    function updateMapFilter() {
-      const clauses = filterConfigs.map(cfg => {
-        const op = cfg.mode === 'min' ? '>=' : '<=';
-        return [op, ['get', cfg.id], cfg.current];
+          map.getCanvas().style.cursor = 'pointer';
+        });
+
+        map.on('mouseleave', 'communes-fill', () => {
+          if (hoveredId !== null) {
+            map.setFeatureState({ source: 'communes', id: hoveredId }, { hover: false });
+          }
+          hoveredId = null;
+          tooltip.style.display = 'none';
+          map.getCanvas().style.cursor = '';
+        });
+
+        // Filtres multi-critères : chaque commune doit satisfaire TOUS les critères actifs pour rester affichée
+        const filterConfigs = [
+          { id: 'altitude_moyenne', label: 'Altitude', mode: 'min', min: 0,   max: 2750, step: 50,  unit: 'm',  prefix: '≥' },
+          { id: 'NORTX30D_yr',      label: 'Jours ≥ 30°C',              mode: 'max', min: 0,   max: 110,  step: 5,   unit: 'j',  prefix: '≤' },
+          { id: 'NORTX35D_yr',      label: 'Jours ≥ 35°C',              mode: 'max', min: 0,   max: 45,   step: 5,   unit: 'j',  prefix: '≤' },
+          { id: 'NORTR_yr',         label: 'Nuits tropicales',          mode: 'max', min: 0,   max: 125,  step: 5,   unit: 'j',  prefix: '≤' },
+          { id: 'NORIFM40_yr',      label: 'Jours feu élevé (IFM>40)',  mode: 'max', min: 0,   max: 95,   step: 5,   unit: 'j',  prefix: '≤' },
+          { id: 'NORRR_yr',         label: 'Précipitations annuelles',  mode: 'min', min: 450, max: 2250, step: 50,  unit: 'mm', prefix: '≥' },
+          { id: 'NORTMm_yr',        label: 'Température moyenne',       mode: 'max', min: 0,   max: 20,   step: 0.5, unit: '°C', prefix: '≤' }
+        ];
+
+        const filtersBody = document.getElementById('filtersBody');
+        const filtersBadge = document.getElementById('filtersBadge');
+        const filtersToggle = document.getElementById('filtersToggle');
+        const filtersPanel = document.getElementById('filtersPanel');
+        const filtersResetAll = document.getElementById('filtersResetAll');
+
+        // Recherche de commune de référence + rayon
+        const communeSearchInput = document.getElementById('communeSearchInput');
+        const distanceSuggestions = document.getElementById('distanceSuggestions');
+        const distanceActive = document.getElementById('distanceActive');
+        const distanceActiveLabel = document.getElementById('distanceActiveLabel');
+        const distanceClear = document.getElementById('distanceClear');
+        const distanceRadiusRow = document.getElementById('distanceRadiusRow');
+        const distanceRadiusSlider = document.getElementById('distanceRadiusSlider');
+        const distanceRadiusValue = document.getElementById('distanceRadiusValue');
+
+        let referenceCommune = null;
+
+        function updateMapFilter() {
+          const clauses = filterConfigs.map(cfg => {
+            const op = cfg.mode === 'min' ? '>=' : '<=';
+            return [op, ['get', cfg.id], cfg.current];
+          });
+
+          if (referenceCommune) {
+            const radius = Number(distanceRadiusSlider.value);
+            const withinRadius = communesIndex
+              .filter(c => haversineKm(referenceCommune.lat, referenceCommune.lon, c.lat, c.lon) <= radius)
+              .map(c => c.code_insee);
+            clauses.push(['in', ['get', 'code_insee'], ['literal', withinRadius]]);
+          }
+
+          const expr = ['all', ...clauses];
+          map.setFilter('communes-fill', expr);
+          map.setFilter('communes-outline', expr);
+        }
+
+        function updateBadge() {
+          let activeCount = filterConfigs.filter(cfg => cfg.current !== cfg.default).length;
+          if (referenceCommune) activeCount += 1;
+          filtersBadge.hidden = activeCount === 0;
+          filtersBadge.textContent = activeCount;
+        }
+
+        filterConfigs.forEach(cfg => {
+          cfg.default = cfg.mode === 'min' ? cfg.min : cfg.max;
+          cfg.current = cfg.default;
+
+          const row = document.createElement('div');
+          row.className = 'filter-item';
+          row.innerHTML = `
+            <div class="filter-item-label">
+              <span>${cfg.label}</span>
+              <span class="filter-item-value">${cfg.prefix} ${cfg.default} ${cfg.unit}</span>
+            </div>
+            <input type="range" min="${cfg.min}" max="${cfg.max}" step="${cfg.step}" value="${cfg.default}" aria-label="${cfg.label}">
+          `;
+          filtersBody.appendChild(row);
+
+          const slider = row.querySelector('input[type="range"]');
+          const valueLabel = row.querySelector('.filter-item-value');
+
+          slider.addEventListener('input', () => {
+            cfg.current = Number(slider.value);
+            valueLabel.textContent = `${cfg.prefix} ${cfg.current} ${cfg.unit}`;
+            updateMapFilter();
+            updateBadge();
+          });
+
+          cfg.sliderEl = slider;
+          cfg.valueEl = valueLabel;
+        });
+
+        function selectReferenceCommune(commune) {
+          referenceCommune = commune;
+          communeSearchInput.value = '';
+          distanceSuggestions.hidden = true;
+          distanceActiveLabel.textContent = `Autour de ${commune.nom_standard}`;
+          distanceActive.hidden = false;
+          distanceRadiusRow.hidden = false;
+          distanceRadiusValue.textContent = `≤ ${distanceRadiusSlider.value} km`;
+          updateMapFilter();
+          updateBadge();
+        }
+
+        communeSearchInput.addEventListener('input', () => {
+          const q = communeSearchInput.value.trim().toLowerCase();
+          if (q.length < 2) {
+            distanceSuggestions.hidden = true;
+            distanceSuggestions.innerHTML = '';
+            return;
+          }
+          const matches = communesIndex
+            .filter(c => c.nom_standard.toLowerCase().startsWith(q))
+            .slice(0, 8);
+
+          if (matches.length === 0) {
+            distanceSuggestions.hidden = true;
+            distanceSuggestions.innerHTML = '';
+            return;
+          }
+
+          distanceSuggestions.innerHTML = matches.map(c =>
+            `<div class="suggestion-item" data-code="${c.code_insee}">${c.nom_standard}<span class="suggestion-dept">${c.code_insee}</span></div>`
+          ).join('');
+          distanceSuggestions.hidden = false;
+        });
+
+        distanceSuggestions.addEventListener('click', (e) => {
+          const item = e.target.closest('.suggestion-item');
+          if (!item) return;
+          const found = communesIndex.find(c => c.code_insee === item.dataset.code);
+          if (found) selectReferenceCommune(found);
+        });
+
+        document.addEventListener('click', (e) => {
+          if (!e.target.closest('.distance-search-wrap')) {
+            distanceSuggestions.hidden = true;
+          }
+        });
+
+        distanceRadiusSlider.addEventListener('input', () => {
+          distanceRadiusValue.textContent = `≤ ${distanceRadiusSlider.value} km`;
+          updateMapFilter();
+        });
+
+        distanceClear.addEventListener('click', () => {
+          referenceCommune = null;
+          communeSearchInput.value = '';
+          distanceActive.hidden = true;
+          distanceRadiusRow.hidden = true;
+          updateMapFilter();
+          updateBadge();
+        });
+
+        filtersResetAll.addEventListener('click', () => {
+          filterConfigs.forEach(cfg => {
+            cfg.current = cfg.default;
+            cfg.sliderEl.value = cfg.default;
+            cfg.valueEl.textContent = `${cfg.prefix} ${cfg.default} ${cfg.unit}`;
+          });
+          referenceCommune = null;
+          communeSearchInput.value = '';
+          distanceActive.hidden = true;
+          distanceRadiusRow.hidden = true;
+          updateMapFilter();
+          updateBadge();
+        });
+
+        filtersToggle.addEventListener('click', () => {
+          const isOpen = !filtersPanel.hidden;
+          filtersPanel.hidden = isOpen;
+          filtersToggle.setAttribute('aria-expanded', String(!isOpen));
+        });
+
+        map.once('idle', () => {
+          loading.classList.add('hidden');
+        });
+      })
+      .catch(() => {
+        loading.textContent = "Impossible de charger data/carte_icc_france.geojson — vérifie que le fichier est bien dans le dossier data/, au même niveau que cette page.";
       });
-      const expr = ['all', ...clauses];
-      map.setFilter('communes-fill', expr);
-      map.setFilter('communes-outline', expr);
-    }
-
-    function updateBadge() {
-      const activeCount = filterConfigs.filter(cfg => cfg.current !== cfg.default).length;
-      filtersBadge.hidden = activeCount === 0;
-      filtersBadge.textContent = activeCount;
-    }
-
-    filterConfigs.forEach(cfg => {
-      cfg.default = cfg.mode === 'min' ? cfg.min : cfg.max;
-      cfg.current = cfg.default;
-
-      const row = document.createElement('div');
-      row.className = 'filter-item';
-      row.innerHTML = `
-        <div class="filter-item-label">
-          <span>${cfg.label}</span>
-          <span class="filter-item-value">${cfg.prefix} ${cfg.default} ${cfg.unit}</span>
-        </div>
-        <input type="range" min="${cfg.min}" max="${cfg.max}" step="${cfg.step}" value="${cfg.default}" aria-label="${cfg.label}">
-      `;
-      filtersBody.appendChild(row);
-
-      const slider = row.querySelector('input[type="range"]');
-      const valueLabel = row.querySelector('.filter-item-value');
-
-      slider.addEventListener('input', () => {
-        cfg.current = Number(slider.value);
-        valueLabel.textContent = `${cfg.prefix} ${cfg.current} ${cfg.unit}`;
-        updateMapFilter();
-        updateBadge();
-      });
-
-      cfg.sliderEl = slider;
-      cfg.valueEl = valueLabel;
-    });
-
-    filtersResetAll.addEventListener('click', () => {
-      filterConfigs.forEach(cfg => {
-        cfg.current = cfg.default;
-        cfg.sliderEl.value = cfg.default;
-        cfg.valueEl.textContent = `${cfg.prefix} ${cfg.default} ${cfg.unit}`;
-      });
-      updateMapFilter();
-      updateBadge();
-    });
-
-    filtersToggle.addEventListener('click', () => {
-      const isOpen = !filtersPanel.hidden;
-      filtersPanel.hidden = isOpen;
-      filtersToggle.setAttribute('aria-expanded', String(!isOpen));
-    });
-
-    map.once('idle', () => {
-      loading.classList.add('hidden');
-    });
   });
 
-  map.on('error', (e) => {
-    loading.textContent = "Impossible de charger data/carte_icc_france.geojson — vérifie que le fichier est bien dans le dossier data/, au même niveau que cette page.";
-  });
 </script>
 
 </body>
