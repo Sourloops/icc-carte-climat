@@ -46,8 +46,10 @@
     left: 18px;
     right: 18px;
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: flex-start;
+    gap: 12px;
     pointer-events: none;
     z-index: 2;
   }
@@ -60,6 +62,108 @@
     padding: 14px 20px;
     max-width: 420px;
     pointer-events: auto;
+  }
+
+  .filters-toggle {
+    background: var(--panel);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 14px 20px;
+    pointer-events: auto;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--ink);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: fit-content;
+  }
+
+  .filters-toggle:hover { background: #FFFFFF; }
+
+  .filters-toggle:focus-visible {
+    outline: 2px solid var(--c6);
+    outline-offset: 2px;
+  }
+
+  .filters-badge {
+    background: var(--c2);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 999px;
+    padding: 1px 7px;
+  }
+
+  .filters-panel {
+    position: absolute;
+    top: 84px;
+    right: 18px;
+    width: 300px;
+    max-height: 70vh;
+    overflow-y: auto;
+    background: var(--panel);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 16px 20px 18px;
+    z-index: 6;
+  }
+
+  .filters-panel[hidden] { display: none; }
+
+  .filters-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .filters-reset-all {
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .filters-reset-all:focus-visible {
+    outline: 2px solid var(--c6);
+    outline-offset: 2px;
+  }
+
+  .filter-item { margin-bottom: 14px; }
+  .filter-item:last-child { margin-bottom: 0; }
+
+  .filter-item-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+
+  .filter-item-label span:first-child { color: var(--ink-soft); }
+
+  .filter-item-value {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .filter-item input[type="range"] {
+    width: 100%;
+    accent-color: var(--c6);
   }
 
   .title-block h1 {
@@ -215,6 +319,7 @@
     .topbar { top: 12px; left: 12px; right: 12px; }
     .title-block { max-width: none; padding: 12px 16px; }
     .legend { left: 12px; right: 12px; bottom: 14px; width: auto; }
+    .filters-panel { left: 12px; right: 12px; width: auto; top: 130px; max-height: 55vh; }
   }
 </style>
 </head>
@@ -229,6 +334,18 @@
     <h1>ICC — Indice de Confort Climatique</h1>
     <p>Projection à +4°C, par commune. Basé sur 9 indicateurs Météo-France (TRACC 2023) : canicules, nuits tropicales, précipitations, feux de forêt.</p>
   </div>
+  <button class="filters-toggle" id="filtersToggle" type="button" aria-expanded="false" aria-controls="filtersPanel">
+    Filtres
+    <span class="filters-badge" id="filtersBadge" hidden>0</span>
+  </button>
+</div>
+
+<div class="filters-panel" id="filtersPanel" hidden>
+  <div class="filters-panel-header">
+    <span>Filtrer les communes</span>
+    <button class="filters-reset-all" id="filtersResetAll" type="button">Tout réinitialiser</button>
+  </div>
+  <div id="filtersBody"></div>
 </div>
 
 <div class="legend">
@@ -353,6 +470,84 @@
       hoveredId = null;
       tooltip.style.display = 'none';
       map.getCanvas().style.cursor = '';
+    });
+
+    // Filtres multi-critères : chaque commune doit satisfaire TOUS les critères actifs pour rester affichée
+    const filterConfigs = [
+      { id: 'altitude_moyenne', label: 'Altitude', mode: 'min', min: 0,   max: 2750, step: 50,  unit: 'm',  prefix: '≥' },
+      { id: 'NORTX30D_yr',      label: 'Jours ≥ 30°C',              mode: 'max', min: 0,   max: 110,  step: 5,   unit: 'j',  prefix: '≤' },
+      { id: 'NORTX35D_yr',      label: 'Jours ≥ 35°C',              mode: 'max', min: 0,   max: 45,   step: 5,   unit: 'j',  prefix: '≤' },
+      { id: 'NORTR_yr',         label: 'Nuits tropicales',          mode: 'max', min: 0,   max: 125,  step: 5,   unit: 'j',  prefix: '≤' },
+      { id: 'NORIFM40_yr',      label: 'Jours feu élevé (IFM>40)',  mode: 'max', min: 0,   max: 95,   step: 5,   unit: 'j',  prefix: '≤' },
+      { id: 'NORRR_yr',         label: 'Précipitations annuelles',  mode: 'min', min: 450, max: 2250, step: 50,  unit: 'mm', prefix: '≥' },
+      { id: 'NORTMm_yr',        label: 'Température moyenne',       mode: 'max', min: 0,   max: 20,   step: 0.5, unit: '°C', prefix: '≤' }
+    ];
+
+    const filtersBody = document.getElementById('filtersBody');
+    const filtersBadge = document.getElementById('filtersBadge');
+    const filtersToggle = document.getElementById('filtersToggle');
+    const filtersPanel = document.getElementById('filtersPanel');
+    const filtersResetAll = document.getElementById('filtersResetAll');
+
+    function updateMapFilter() {
+      const clauses = filterConfigs.map(cfg => {
+        const op = cfg.mode === 'min' ? '>=' : '<=';
+        return [op, ['get', cfg.id], cfg.current];
+      });
+      const expr = ['all', ...clauses];
+      map.setFilter('communes-fill', expr);
+      map.setFilter('communes-outline', expr);
+    }
+
+    function updateBadge() {
+      const activeCount = filterConfigs.filter(cfg => cfg.current !== cfg.default).length;
+      filtersBadge.hidden = activeCount === 0;
+      filtersBadge.textContent = activeCount;
+    }
+
+    filterConfigs.forEach(cfg => {
+      cfg.default = cfg.mode === 'min' ? cfg.min : cfg.max;
+      cfg.current = cfg.default;
+
+      const row = document.createElement('div');
+      row.className = 'filter-item';
+      row.innerHTML = `
+        <div class="filter-item-label">
+          <span>${cfg.label}</span>
+          <span class="filter-item-value">${cfg.prefix} ${cfg.default} ${cfg.unit}</span>
+        </div>
+        <input type="range" min="${cfg.min}" max="${cfg.max}" step="${cfg.step}" value="${cfg.default}" aria-label="${cfg.label}">
+      `;
+      filtersBody.appendChild(row);
+
+      const slider = row.querySelector('input[type="range"]');
+      const valueLabel = row.querySelector('.filter-item-value');
+
+      slider.addEventListener('input', () => {
+        cfg.current = Number(slider.value);
+        valueLabel.textContent = `${cfg.prefix} ${cfg.current} ${cfg.unit}`;
+        updateMapFilter();
+        updateBadge();
+      });
+
+      cfg.sliderEl = slider;
+      cfg.valueEl = valueLabel;
+    });
+
+    filtersResetAll.addEventListener('click', () => {
+      filterConfigs.forEach(cfg => {
+        cfg.current = cfg.default;
+        cfg.sliderEl.value = cfg.default;
+        cfg.valueEl.textContent = `${cfg.prefix} ${cfg.default} ${cfg.unit}`;
+      });
+      updateMapFilter();
+      updateBadge();
+    });
+
+    filtersToggle.addEventListener('click', () => {
+      const isOpen = !filtersPanel.hidden;
+      filtersPanel.hidden = isOpen;
+      filtersToggle.setAttribute('aria-expanded', String(!isOpen));
     });
 
     map.once('idle', () => {
