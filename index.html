@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICC — Indice de Confort Climatique</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #E8ECE9;
+    --ink: #1B2420;
+    --ink-soft: rgba(27,36,32,0.62);
+    --panel: rgba(255,255,255,0.86);
+    --panel-border: rgba(27,36,32,0.10);
+    --c1: #7A2E1D;
+    --c2: #B6502E;
+    --c3: #DDA15E;
+    --c4: #EDE6C8;
+    --c5: #8FBFAE;
+    --c6: #4C8C82;
+    --c7: #1F4A44;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+  }
+
+  #map { position: absolute; inset: 0; }
+
+  .maplibregl-canvas:focus-visible { outline: 3px solid var(--c6); outline-offset: -3px; }
+
+  .topbar {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    right: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .title-block {
+    background: var(--panel);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 14px 20px;
+    max-width: 420px;
+    pointer-events: auto;
+  }
+
+  .title-block h1 {
+    margin: 0 0 4px 0;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(17px, 2.4vw, 21px);
+    letter-spacing: -0.01em;
+  }
+
+  .title-block p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--ink-soft);
+  }
+
+  .legend {
+    position: absolute;
+    left: 18px;
+    bottom: 22px;
+    background: var(--panel);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 14px 18px;
+    width: 260px;
+    z-index: 2;
+  }
+
+  .legend-label {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+
+  .legend-bar {
+    height: 10px;
+    border-radius: 6px;
+    background: linear-gradient(to right,
+      var(--c1) 0%, var(--c2) 23%, var(--c3) 41%,
+      var(--c4) 56%, var(--c5) 71%, var(--c6) 88%, var(--c7) 100%);
+  }
+
+  .legend-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+
+  .legend-caption {
+    margin-top: 10px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--ink-soft);
+  }
+
+  .tooltip {
+    position: absolute;
+    display: none;
+    pointer-events: none;
+    background: var(--ink);
+    color: #F4F6F4;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    z-index: 3;
+    max-width: 220px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+  }
+
+  .tooltip-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 2px;
+  }
+
+  .tooltip-score {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: rgba(244,246,244,0.75);
+    margin-bottom: 6px;
+  }
+
+  .tooltip-gauge {
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(244,246,244,0.18);
+    overflow: hidden;
+  }
+
+  .tooltip-gauge-fill {
+    height: 100%;
+    background: var(--c5);
+    border-radius: 3px;
+  }
+
+  .loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    z-index: 5;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--ink-soft);
+    transition: opacity 0.3s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .loading { transition: none; }
+  }
+
+  .loading.hidden { opacity: 0; pointer-events: none; }
+
+  @media (max-width: 640px) {
+    .topbar { top: 12px; left: 12px; right: 12px; }
+    .title-block { max-width: none; padding: 12px 16px; }
+    .legend { left: 12px; right: 12px; bottom: 14px; width: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="loading" id="loading">Chargement des données climatiques…</div>
+
+<div class="topbar">
+  <div class="title-block">
+    <h1>ICC — Indice de Confort Climatique</h1>
+    <p>Projection à l'horizon 2100 (+4°C), par commune. Basé sur 9 indicateurs Météo-France (TRACC 2023) : canicules, nuits tropicales, précipitations, feux de forêt.</p>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-label">Indice de confort</div>
+  <div class="legend-bar"></div>
+  <div class="legend-scale">
+    <span>Faible</span>
+    <span>Élevé</span>
+  </div>
+  <div class="legend-caption">Survolez une commune pour voir son score détaillé.</div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
+<script>
+  const tooltip = document.getElementById('tooltip');
+  const loading = document.getElementById('loading');
+
+  const map = new maplibregl.Map({
+    container: 'map',
+    style: {
+      version: 8,
+      sources: {},
+      layers: [
+        { id: 'background', type: 'background', paint: { 'background-color': '#E8ECE9' } }
+      ]
+    },
+    center: [2.4, 46.6],
+    zoom: 5,
+    minZoom: 4.2,
+    maxZoom: 11,
+    attributionControl: false
+  });
+
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+
+  map.on('load', () => {
+    map.addSource('communes', {
+      type: 'geojson',
+      data: 'data/carte_icc_france.geojson',
+      generateId: true
+    });
+
+    map.addLayer({
+      id: 'communes-fill',
+      type: 'fill',
+      source: 'communes',
+      paint: {
+        'fill-color': [
+          'interpolate', ['linear'], ['coalesce', ['get', 'ICC'], 0],
+          10, '#7A2E1D',
+          30, '#B6502E',
+          45, '#DDA15E',
+          58, '#EDE6C8',
+          70, '#8FBFAE',
+          85, '#4C8C82',
+          95, '#1F4A44'
+        ],
+        'fill-opacity': [
+          'case',
+          ['boolean', ['feature-state', 'hover'], false],
+          1,
+          0.85
+        ]
+      }
+    });
+
+    map.addLayer({
+      id: 'communes-outline',
+      type: 'line',
+      source: 'communes',
+      paint: {
+        'line-color': 'rgba(20,30,28,0.22)',
+        'line-width': 0.4
+      }
+    });
+
+    let hoveredId = null;
+
+    map.on('mousemove', 'communes-fill', (e) => {
+      if (e.features.length === 0) return;
+
+      if (hoveredId !== null) {
+        map.setFeatureState({ source: 'communes', id: hoveredId }, { hover: false });
+      }
+      hoveredId = e.features[0].id;
+      map.setFeatureState({ source: 'communes', id: hoveredId }, { hover: true });
+
+      const props = e.features[0].properties;
+      const icc = Number(props.ICC).toFixed(1);
+      const gaugePct = Math.max(0, Math.min(100, ((props.ICC - 10) / 85) * 100));
+
+      tooltip.style.display = 'block';
+      tooltip.style.left = (e.point.x + 16) + 'px';
+      tooltip.style.top = (e.point.y + 16) + 'px';
+      tooltip.innerHTML = `
+        <div class="tooltip-name">${props.nom_standard}</div>
+        <div class="tooltip-score">ICC ${icc} / 100</div>
+        <div class="tooltip-gauge"><div class="tooltip-gauge-fill" style="width:${gaugePct}%"></div></div>
+      `;
+
+      map.getCanvas().style.cursor = 'pointer';
+    });
+
+    map.on('mouseleave', 'communes-fill', () => {
+      if (hoveredId !== null) {
+        map.setFeatureState({ source: 'communes', id: hoveredId }, { hover: false });
+      }
+      hoveredId = null;
+      tooltip.style.display = 'none';
+      map.getCanvas().style.cursor = '';
+    });
+
+    map.once('idle', () => {
+      loading.classList.add('hidden');
+    });
+  });
+
+  map.on('error', (e) => {
+    loading.textContent = "Impossible de charger data/carte_icc_france.geojson — vérifie que le fichier est bien dans le dossier data/, au même niveau que cette page.";
+  });
+</script>
+
+</body>
+</html>
