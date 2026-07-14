@@ -656,8 +656,10 @@
     position: absolute;
     inset: 0;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 18px;
     background: var(--bg);
     z-index: 5;
     font-family: var(--font-mono);
@@ -666,8 +668,28 @@
     transition: opacity 0.3s ease;
   }
 
+  .loading-globe { width: 84px; height: 84px; }
+
+  .loading-text { margin: 0; text-align: center; max-width: 280px; }
+
+  .loader-meridian {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: loader-spin 4s linear infinite;
+  }
+  .loader-meridian.m1 { animation-delay: 0s; }
+  .loader-meridian.m2 { animation-delay: -1.33s; }
+  .loader-meridian.m3 { animation-delay: -2.66s; }
+
+  @keyframes loader-spin {
+    0%   { transform: scaleX(1); }
+    50%  { transform: scaleX(0.04); }
+    100% { transform: scaleX(1); }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .loading { transition: none; }
+    .loader-meridian { animation: none; }
   }
 
   .loading.hidden { opacity: 0; pointer-events: none; }
@@ -684,7 +706,42 @@
 
 <div id="map"></div>
 
-<div class="loading" id="loading">Chargement des données climatiques…</div>
+<div class="loading" id="loading">
+  <div class="loading-globe">
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <linearGradient id="loaderGlobeGrad" x1="10%" y1="5%" x2="90%" y2="95%">
+          <stop offset="0%" stop-color="#4C8C82"/>
+          <stop offset="55%" stop-color="#8FBFAE"/>
+          <stop offset="100%" stop-color="#B6502E"/>
+        </linearGradient>
+        <radialGradient id="loaderShading" cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.4"/>
+          <stop offset="45%" stop-color="#FFFFFF" stop-opacity="0"/>
+          <stop offset="100%" stop-color="#000000" stop-opacity="0.15"/>
+        </radialGradient>
+        <clipPath id="loaderSphereClip">
+          <circle cx="32" cy="32" r="30"/>
+        </clipPath>
+      </defs>
+
+      <circle cx="32" cy="32" r="30" fill="url(#loaderGlobeGrad)"/>
+
+      <g clip-path="url(#loaderSphereClip)" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="1.1">
+        <ellipse cx="32" cy="18" rx="26" ry="6"/>
+        <ellipse cx="32" cy="32" rx="30" ry="10"/>
+        <ellipse cx="32" cy="46" rx="26" ry="6"/>
+
+        <ellipse class="loader-meridian m1" cx="32" cy="32" rx="30" ry="30"/>
+        <ellipse class="loader-meridian m2" cx="32" cy="32" rx="30" ry="30"/>
+        <ellipse class="loader-meridian m3" cx="32" cy="32" rx="30" ry="30"/>
+      </g>
+
+      <circle cx="32" cy="32" r="30" fill="url(#loaderShading)"/>
+    </svg>
+  </div>
+  <p class="loading-text" id="loadingText">Chargement des données climatiques…</p>
+</div>
 
 <div class="topbar">
   <div class="title-block" id="titleBlock">
@@ -1229,7 +1286,7 @@
         });
       })
       .catch(() => {
-        loading.textContent = "Impossible de charger data/carte_icc_france.geojson — vérifie que le fichier est bien dans le dossier data/, au même niveau que cette page.";
+        document.getElementById('loadingText').textContent = "Impossible de charger data/carte_icc_france.geojson — vérifie que le fichier est bien dans le dossier data/, au même niveau que cette page.";
       });
   });
 
