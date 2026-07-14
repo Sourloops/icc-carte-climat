@@ -7,6 +7,10 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="globe.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
 <style>
   :root{
     --bg: #E8ECE9;
@@ -443,6 +447,14 @@
     letter-spacing: -0.01em;
   }
 
+    .title-block h2 {
+    margin: 0 0 4px 0;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(17px, 2.4vw, 12px);
+    letter-spacing: -0.01em;
+  }
+
   .title-block p {
     margin: 0;
     font-size: 13px;
@@ -653,7 +665,7 @@
 <div class="topbar">
   <div class="title-block">
     <h1>Où vivre dans une France à +4°C ?</h1>
-    <p>Le climat de votre commune change. Découvrez-le avant de choisir où poser vos valises.</p>
+    <p>Le climat de votre commune change. Découvrez la carte de France de l'indice de confort climatique.</p>
     <ul class="value-prop-list">
       <li><strong>Explorer</strong> — La carte climatique de la France à +4°C, commune par commune, basée sur les projections officielles Météo-France (TRACC 2023).</li>
       <li><strong>Filtrer</strong> — Selon des critères réels : confort climatique, distance à une ville de référence, altitude, nombre de jours de canicule.</li>
@@ -700,7 +712,7 @@
 </div>
 
 <div class="legend">
-  <div class="legend-label">Indice de confort</div>
+  <div class="legend-label">Indice de confort climatique</div>
   <div class="legend-bar"></div>
   <div class="legend-scale">
     <span>Faible</span>
@@ -955,12 +967,12 @@
         // Filtres multi-critères : chaque commune doit satisfaire TOUS les critères actifs pour rester affichée
         const filterConfigs = [
           { id: 'altitude_moyenne', label: 'Altitude supérieure à',              mode: 'min', min: 0,   max: 2750, step: 50,  unit: 'm',  prefix: '' },
-          { id: 'NORTX30D_yr',      label: 'Nb de jours où la T°C > 30°C',       mode: 'max', min: 0,   max: 110,  step: 5,   unit: 'j',  prefix: '≤' },
-          { id: 'NORTX35D_yr',      label: 'Nb de jours où la T°C > 35°C',       mode: 'max', min: 0,   max: 45,   step: 5,   unit: 'j',  prefix: '≤' },
-          { id: 'NORTR_yr',         label: 'Nb de nuits tropicales (T > 20°C)',  mode: 'max', min: 0,   max: 125,  step: 5,   unit: 'j',  prefix: '≤' },
-          { id: 'NORIFM40_yr',      label: 'Nb de jours de feu élevé (IFM>40)',  mode: 'max', min: 0,   max: 95,   step: 5,   unit: 'j',  prefix: '≤' },
+          { id: 'NORTX30D_yr',      label: 'Nb de j/an où la T°C > 30°C',       mode: 'max', min: 0,   max: 110,  step: 5,   unit: 'j',  prefix: '- de' },
+          { id: 'NORTX35D_yr',      label: 'Nb de j/an où la T°C > 35°C',       mode: 'max', min: 0,   max: 45,   step: 5,   unit: 'j',  prefix: '- de' },
+          { id: 'NORTR_yr',         label: 'Nb de nuits tropicales/an',  mode: 'max', min: 0,   max: 125,  step: 5,   unit: 'j',  prefix: '- de' },
+          { id: 'NORIFM40_yr',      label: 'Nb de j/an de feu élevé (IFM>40)',  mode: 'max', min: 0,   max: 95,   step: 5,   unit: 'j',  prefix: '- de' },
           { id: 'NORRR_yr',         label: 'Précipitations annuelles',           mode: 'min', min: 450, max: 2250, step: 50,  unit: 'mm', prefix: '≥' },
-          { id: 'NORTMm_yr',        label: 'Température moyenne',                mode: 'max', min: 0,   max: 20,   step: 0.5, unit: '°C', prefix: '≤' }
+          { id: 'NORTMm_yr',        label: 'Température moyenne',                mode: 'max', min: 0,   max: 20,   step: 0.5, unit: '°C', prefix: '<' }
         ];
 
         function formatFilterValue(cfg, value) {
