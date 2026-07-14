@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Globe ICC — aperçu animé</title>
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0B1F1C;
+  }
+  .globe-wrap {
+    width: 220px;
+    height: 220px;
+  }
+  svg { width: 100%; height: 100%; }
+
+  .meridian {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: spin 4s linear infinite;
+  }
+  .m1 { animation-delay: 0s; }
+  .m2 { animation-delay: -1.33s; }
+  .m3 { animation-delay: -2.66s; }
+
+  @keyframes spin {
+    0%   { transform: scaleX(1); }
+    50%  { transform: scaleX(0.04); }
+    100% { transform: scaleX(1); }
+  }
+</style>
+</head>
+<body>
+  <div class="globe-wrap">
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="globeGrad" x1="10%" y1="5%" x2="90%" y2="95%">
+          <stop offset="0%" stop-color="#0E9488"/>
+          <stop offset="55%" stop-color="#3E8F6E"/>
+          <stop offset="100%" stop-color="#C1440E"/>
+        </linearGradient>
+        <radialGradient id="shading" cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.35"/>
+          <stop offset="45%" stop-color="#FFFFFF" stop-opacity="0"/>
+          <stop offset="100%" stop-color="#000000" stop-opacity="0.18"/>
+        </radialGradient>
+        <clipPath id="sphereClip">
+          <circle cx="32" cy="32" r="27"/>
+        </clipPath>
+      </defs>
+
+      <rect x="1" y="1" width="62" height="62" rx="15" fill="#0B4A44"/>
+      <circle cx="32" cy="32" r="27" fill="url(#globeGrad)"/>
+
+      <g clip-path="url(#sphereClip)" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="1.1">
+        <ellipse cx="32" cy="20" rx="24" ry="5.5"/>
+        <ellipse cx="32" cy="32" rx="27" ry="9"/>
+        <ellipse cx="32" cy="44" rx="24" ry="5.5"/>
+
+        <ellipse class="meridian m1" cx="32" cy="32" rx="27" ry="27"/>
+        <ellipse class="meridian m2" cx="32" cy="32" rx="27" ry="27"/>
+        <ellipse class="meridian m3" cx="32" cy="32" rx="27" ry="27"/>
+      </g>
+
+      <circle cx="32" cy="32" r="27" fill="url(#shading)"/>
+      <circle cx="32" cy="32" r="27" fill="none" stroke="#0B4A44" stroke-opacity="0.25" stroke-width="1"/>
+    </svg>
+  </div>
+</body>
+</html>
