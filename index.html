@@ -71,7 +71,7 @@
   }
 
   .title-block p {
-    margin: 0 0 10px 0;
+    margin: 14px 0 14px 0;
     font-size: 13.5px;
     line-height: 1.5;
     color: var(--ink);
@@ -440,26 +440,51 @@
   }
 
   .title-block h1 {
-    margin: 0 0 4px 0;
+    margin: 0;
     font-family: var(--font-display);
     font-weight: 700;
     font-size: clamp(17px, 2.4vw, 21px);
     letter-spacing: -0.01em;
   }
 
-    .title-block h2 {
-    margin: 0 0 4px 0;
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: clamp(17px, 2.4vw, 12px);
-    letter-spacing: -0.01em;
+  .panel-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
   }
 
-  .title-block p {
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.45;
+  .panel-collapse-toggle {
+    background: none;
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 1;
     color: var(--ink-soft);
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .panel-collapse-toggle:hover { background: var(--bg); }
+
+  .panel-collapse-toggle:focus-visible {
+    outline: 2px solid var(--c6);
+    outline-offset: 1px;
+  }
+
+  .panel-collapsible-body { margin-top: 12px; }
+
+  .title-block.collapsed .panel-collapsible-body,
+  .legend.collapsed .panel-collapsible-body {
+    display: none;
   }
 
   .legend {
@@ -482,7 +507,6 @@
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--ink-soft);
-    margin-bottom: 8px;
   }
 
   .legend-bar {
@@ -663,15 +687,20 @@
 <div class="loading" id="loading">Chargement des données climatiques…</div>
 
 <div class="topbar">
-  <div class="title-block">
-    <h1>Où vivre dans une France à +4°C ?</h1>
-    <p>Le climat de votre commune change. Découvrez la carte de France de l'indice de confort climatique.</p>
-    <ul class="value-prop-list">
-      <li><strong>Explorer</strong> — La carte climatique de la France à +4°C, commune par commune, basée sur les projections officielles Météo-France (TRACC 2023).</li>
-      <li><strong>Filtrer</strong> — Selon des critères réels : confort climatique, distance à une ville de référence, altitude, nombre de jours de canicule.</li>
-      <li><strong>Anticiper</strong> — Votre lieu de vie, en connaissance de cause plutôt que par intuition.</li>
-    </ul>
-    <button class="info-toggle" id="infoToggle" type="button">En savoir plus</button>
+  <div class="title-block" id="titleBlock">
+    <div class="panel-header-row">
+      <h1>Où vivre dans une France à +4°C ?</h1>
+      <button class="panel-collapse-toggle" id="titleCollapseToggle" type="button" aria-expanded="true" aria-controls="titleBlockBody" aria-label="Réduire cet encart">−</button>
+    </div>
+    <div class="panel-collapsible-body" id="titleBlockBody">
+      <p>Le climat de votre commune change. Découvrez la carte de France de l'indice de confort climatique.</p>
+      <ul class="value-prop-list">
+        <li><strong>Explorer</strong> — La carte climatique de la France à +4°C, commune par commune, basée sur les projections officielles Météo-France (TRACC 2023).</li>
+        <li><strong>Filtrer</strong> — Selon des critères réels : confort climatique, distance à une ville de référence, altitude, nombre de jours de canicule.</li>
+        <li><strong>Anticiper</strong> — Votre lieu de vie, en connaissance de cause plutôt que par intuition.</li>
+      </ul>
+      <button class="info-toggle" id="infoToggle" type="button">En savoir plus</button>
+    </div>
   </div>
   <button class="filters-toggle" id="filtersToggle" type="button" aria-expanded="false" aria-controls="filtersPanel">
     Filtres
@@ -711,17 +740,22 @@
   <div id="filtersBody"></div>
 </div>
 
-<div class="legend">
-  <div class="legend-label">Indice de confort climatique</div>
-  <div class="legend-bar"></div>
-  <div class="legend-scale">
-    <span>Faible</span>
-    <span>Élevé</span>
+<div class="legend" id="legendPanel">
+  <div class="panel-header-row">
+    <div class="legend-label">Indice de confort climatique</div>
+    <button class="panel-collapse-toggle" id="legendCollapseToggle" type="button" aria-expanded="true" aria-controls="legendBody" aria-label="Réduire cet encart">−</button>
   </div>
-  <div class="legend-caption">Survolez une commune pour voir son score détaillé.</div>
-  <div class="legend-sources">
-    <div class="legend-sources-label">Sources</div>
-    <p>Données climatiques : Météo-France, base DRIAS, scénario de réchauffement +4°C (TRACC 2023). Référentiel communes : data.gouv.fr. Fond de carte : OpenFreeMap / © contributeurs OpenStreetMap. Diffusion sous Licence Ouverte.</p>
+  <div class="panel-collapsible-body" id="legendBody">
+    <div class="legend-bar"></div>
+    <div class="legend-scale">
+      <span>Faible</span>
+      <span>Élevé</span>
+    </div>
+    <div class="legend-caption">Survolez une commune pour voir son score détaillé.</div>
+    <div class="legend-sources">
+      <div class="legend-sources-label">Sources</div>
+      <p>Données climatiques : Météo-France, base DRIAS, scénario de réchauffement +4°C (TRACC 2023). Référentiel communes : data.gouv.fr. Fond de carte : OpenFreeMap / © contributeurs OpenStreetMap. Diffusion sous Licence Ouverte.</p>
+    </div>
   </div>
 </div>
 
@@ -819,6 +853,23 @@
       closeInfo();
     }
   });
+
+  // Réduire/étendre les encarts titre et légende — utile sur mobile où ils peuvent
+  // occuper tout l'écran. État gardé en mémoire seulement (pas de persistance entre sessions).
+  function setupCollapsible(panelId, toggleId) {
+    const panel = document.getElementById(panelId);
+    const toggle = document.getElementById(toggleId);
+
+    toggle.addEventListener('click', () => {
+      const isCollapsed = panel.classList.toggle('collapsed');
+      toggle.setAttribute('aria-expanded', String(!isCollapsed));
+      toggle.setAttribute('aria-label', isCollapsed ? 'Développer cet encart' : 'Réduire cet encart');
+      toggle.textContent = isCollapsed ? '+' : '−';
+    });
+  }
+
+  setupCollapsible('titleBlock', 'titleCollapseToggle');
+  setupCollapsible('legendPanel', 'legendCollapseToggle');
 
   const map = new maplibregl.Map({
     container: 'map',
