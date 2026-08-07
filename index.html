@@ -456,29 +456,31 @@
   }
 
   .panel-collapse-toggle {
-    background: none;
-    border: 1px solid var(--panel-border);
+    background: var(--c6);
+    border: 1px solid var(--c6);
     border-radius: 6px;
-    width: 22px;
-    height: 22px;
-    min-width: 22px;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: var(--font-mono);
-    font-size: 14px;
+    font-size: 15px;
+    font-weight: 700;
     line-height: 1;
-    color: var(--ink-soft);
+    color: #FFFFFF;
     cursor: pointer;
     padding: 0;
+    box-shadow: 0 2px 8px rgba(76,140,130,0.35);
   }
 
-  .panel-collapse-toggle:hover { background: var(--bg); }
+  .panel-collapse-toggle:hover { background: #3E736A; border-color: #3E736A; }
 
   .panel-collapse-toggle:focus-visible {
-    outline: 2px solid var(--c6);
-    outline-offset: 1px;
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
   }
 
   .panel-collapsible-body { margin-top: 12px; }
@@ -798,10 +800,10 @@
   <div id="filtersBody"></div>
 </div>
 
-<div class="legend" id="legendPanel">
+<div class="legend collapsed" id="legendPanel">
   <div class="panel-header-row">
     <div class="legend-label">Indice de confort climatique</div>
-    <button class="panel-collapse-toggle" id="legendCollapseToggle" type="button" aria-expanded="true" aria-controls="legendBody" aria-label="Réduire cet encart">−</button>
+    <button class="panel-collapse-toggle" id="legendCollapseToggle" type="button" aria-expanded="false" aria-controls="legendBody" aria-label="Développer cet encart">+</button>
   </div>
   <div class="panel-collapsible-body" id="legendBody">
     <div class="legend-bar"></div>
