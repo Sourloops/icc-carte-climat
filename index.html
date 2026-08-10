@@ -655,6 +655,15 @@
     white-space: nowrap;
   }
 
+  .tooltip-link {
+    margin-top: 9px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(244,246,244,0.14);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--c5);
+  }
+
   .loading {
     position: absolute;
     inset: 0;
@@ -1061,6 +1070,7 @@
               <div class="stat-row"><span>Nuits tropicales</span><span>${nuits} j</span></div>
               <div class="stat-row"><span>Jours feu élevé (IFM&gt;40)</span><span>${feu} j</span></div>
             </div>
+            <div class="tooltip-link">Cliquer pour la fiche détaillée →</div>
           `;
 
           map.getCanvas().style.cursor = 'pointer';
@@ -1073,6 +1083,12 @@
           hoveredId = null;
           tooltip.style.display = 'none';
           map.getCanvas().style.cursor = '';
+        });
+
+        map.on('click', 'communes-fill', (e) => {
+          if (e.features.length === 0) return;
+          const slug = e.features[0].properties.slug;
+          if (slug) window.open(`commune/${slug}.html`, '_blank');
         });
 
         // Filtres multi-critères : chaque commune doit satisfaire TOUS les critères actifs pour rester affichée
@@ -1289,7 +1305,10 @@
         });
       })
       .catch(() => {
-        document.getElementById('loadingText').textContent = "Impossible de charger data/carte_icc_france.geojson — vérifie que le fichier est bien dans le dossier data/, au même niveau que cette page.";
+        const message = location.protocol === 'file:'
+          ? "Le navigateur bloque le chargement des données en ouvrant directement le fichier (protocole file://). Lance un serveur local (ex. python -m http.server) depuis le dossier site/, puis ouvre http://localhost:8000/."
+          : "Impossible de charger data/carte_icc_france.geojson — vérifie que le fichier est bien dans le dossier data/, au même niveau que cette page.";
+        document.getElementById('loadingText').textContent = message;
       });
   });
 
