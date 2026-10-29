@@ -1,0 +1,21 @@
+// Serveur des parties en famille, sur Cloudflare Workers.
+// Documentation : https://developers.cloudflare.com/workers/wrangler/configuration/
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "barometre-deuil-climatique",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    // Utile en local et sur l'adresse .workers.dev ; le site public est servi par GitHub Pages.
+    "run_worker_first": ["/api/*"]
+  },
+  "vars": {
+    // Sites autorisés à ouvrir une partie (séparés par des virgules).
+    "ALLOWED_ORIGINS": "https://france4degres.fr,https://www.france4degres.fr"
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "ROOMS", "class_name": "Room" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  "observability": { "enabled": true }
+}
