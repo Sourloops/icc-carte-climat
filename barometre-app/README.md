@@ -23,6 +23,17 @@ Le questionnaire tire chaque fois 10 questions parmi 96, dont trois dilemmes ins
 
 Avec Claude Code, ouvrez ce dossier et demandez simplement : « Lance le projet en local ». Le fichier `CLAUDE.md` donne à Claude tout le contexte du projet.
 
+## Travailler dans GitHub Codespaces
+
+Rien à installer sur le PC : le dépôt contient une configuration (`.devcontainer/`) qui prépare Node.js et les dépendances.
+
+1. **Jeton Cloudflare** (une seule fois). Dans Cloudflare : *My Profile → API Tokens → Create Token*, modèle **« Edit Cloudflare Workers »**, puis *Continue to summary → Create Token*. Copiez le jeton.
+2. **Secret Codespaces** (une seule fois). Sur GitHub : *Settings → Codespaces → Secrets → New secret*, nom `CLOUDFLARE_API_TOKEN`, collez le jeton, donnez accès au dépôt `icc-carte-climat`.
+3. **Ouvrir le Codespace.** Sur la page du dépôt : bouton vert *Code → Codespaces → Create codespace on …* (choisissez la branche voulue). L'installation prend quelques minutes la première fois.
+4. Dans le terminal (déjà placé dans `barometre-app`) : `npm run dev` pour tester, `npm run deploy:api` pour mettre en ligne le serveur des parties.
+
+La connexion `wrangler login` fonctionne mal dans un Codespace ouvert dans le navigateur : le jeton du point 1 la remplace.
+
 ## Commandes
 
 | Commande | Ce qu'elle fait |
