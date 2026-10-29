@@ -9,6 +9,8 @@ Ce dépôt est publié tel quel par GitHub Pages sur https://france4degres.fr (f
   - `barometre-app/` contient les sources (Vite + TypeScript, serveur Cloudflare pour les parties en famille). Ses règles sont dans `barometre-app/CLAUDE.md`.
   - `barometre/` contient la version publiée, générée par `npm run build:site` depuis `barometre-app/`. On ne l'édite jamais à la main.
 
+`.devcontainer/` configure GitHub Codespaces (Node 22, npm 11, dépendances de `barometre-app`, secret `CLOUDFLARE_API_TOKEN`).
+
 ## Règles
 
 - Explique tes choix à Paul simplement, en français.

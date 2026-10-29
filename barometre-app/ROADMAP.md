@@ -20,8 +20,9 @@ Légende : 🧑 Paul s'en occupe · 🤖 à demander à Claude Code · ✅ déj�
 
 ## Semaine 2 · du 5 au 11 novembre : ouvrir le mode famille en ligne
 
-- 🧑 Créer un compte Cloudflare gratuit : <https://dash.cloudflare.com/sign-up>
-- 🤖 « Mets le serveur des parties en ligne » : Claude lance `wrangler login` (vous validez dans le navigateur), puis `npm run deploy:api`. Cloudflare affiche une adresse en `.workers.dev`.
+- ✅ Créer un compte Cloudflare gratuit
+- 🧑 Créer un jeton Cloudflare (modèle « Edit Cloudflare Workers ») et l'enregistrer comme secret Codespaces `CLOUDFLARE_API_TOKEN` (voir « Travailler dans GitHub Codespaces » dans le README)
+- 🧑 Ouvrir un Codespace sur la branche, puis lancer `npm run deploy:api` dans `barometre-app`. Cloudflare affiche une adresse en `.workers.dev`.
 - 🤖 « Renseigne cette adresse dans .env.pages, reconstruis le site et pousse » : le mode famille s'ouvre sur france4degres.fr/barometre.
 - 🧑 Faire une partie en 4G depuis deux téléphones pour vérifier
 

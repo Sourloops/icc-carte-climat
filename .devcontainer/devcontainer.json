@@ -1,0 +1,21 @@
+// Environnement GitHub Codespaces pour le Baromètre du deuil climatique.
+// À l'ouverture : Node.js 22, npm 11 et les dépendances de barometre-app sont installés automatiquement.
+{
+  "name": "Baromètre du deuil climatique",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "postCreateCommand": "npm install -g npm@11 && cd barometre-app && npm install",
+  "forwardPorts": [5173],
+  "portsAttributes": {
+    "5173": { "label": "Baromètre (npm run dev)", "onAutoForward": "openBrowser" }
+  },
+  "secrets": {
+    "CLOUDFLARE_API_TOKEN": {
+      "description": "Jeton Cloudflare (modèle « Edit Cloudflare Workers ») pour mettre en ligne le serveur des parties avec npm run deploy:api.",
+      "documentationUrl": "https://developers.cloudflare.com/fundamentals/api/get-started/create-token/"
+    }
+  },
+  "customizations": {
+    "codespaces": { "openFiles": ["barometre-app/ROADMAP.md"] },
+    "vscode": { "settings": { "terminal.integrated.cwd": "${containerWorkspaceFolder}/barometre-app" } }
+  }
+}
